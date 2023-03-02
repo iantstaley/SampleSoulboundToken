@@ -1,0 +1,59 @@
+echo "# SampleSoulboundToken" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/iantstaley/SampleSoulboundToken.git
+git push -u origin main
+pragma solidity ^0.8.0;
+
+contract SoulboundToken {
+    string public name = "Soulbound Token";
+    string public symbol = "SBT";
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
+    mapping(address => bool) public soulbound;
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Soulbound(address indexed account);
+
+    constructor(uint256 _initialSupply) {
+        totalSupply = _initialSupply;
+        balanceOf[msg.sender] = _initialSupply;
+        soulbound[msg.sender] = true;
+    }
+
+    function transfer(address _to, uint256 _value) public returns (bool success) {
+        require(_value <= balanceOf[msg.sender], "Insufficient balance");
+        require(!soulbound[msg.sender] || soulbound[_to], "Tokens are soulbound and cannot be transferred");
+        balanceOf[msg.sender] -= _value;
+        balanceOf[_to] += _value;
+        emit Transfer(msg.sender, _to, _value);
+        return true;
+    }
+
+    function approve(address _spender, uint256 _value) public returns (bool success) {
+        allowance[msg.sender][_spender] = _value;
+        emit Approval(msg.sender, _spender, _value);
+        return true;
+    }
+
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+        require(_value <= balanceOf[_from], "Insufficient balance");
+        require(_value <= allowance[_from][msg.sender], "Insufficient allowance");
+        require(!soulbound[_from] || soulbound[_to], "Tokens are soulbound and cannot be transferred");
+        balanceOf[_from] -= _value;
+        balanceOf[_to] += _value;
+        allowance[_from][msg.sender] -= _value;
+        emit Transfer(_from, _to, _value);
+        return true;
+    }
+
+    function setSoulbound(address _account, bool _isSoulbound) public {
+        require(msg.sender == _account || soulbound[msg.sender], "Only the account or a soulbound address can set soulbound status");
+        soulbound[_account] = _isSoulbound;
+        emit Soulbound(_account);
+    }
+}
